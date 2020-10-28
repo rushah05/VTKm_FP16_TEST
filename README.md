@@ -12,3 +12,11 @@ make -j16
 
 
 and then change CMakeFiles.txt to point to the build
+
+```
+********Test vtkm_TEST********
+rm -r CMakeFiles/
+rm cmake_install.cmake CMakeCache.txt Makefile 
+cmake -DCMAKE_PREFIX_PATH=/home/ruchi/fp16_vtkm_new/build  .
+make -j16
+```
