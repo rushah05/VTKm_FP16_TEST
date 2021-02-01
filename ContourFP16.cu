@@ -8,6 +8,7 @@
 #include <vtkm/cont/DataSetFieldAdd.h>
 #include <vtkm/cont/CoordinateSystemFP16.h>
 #include <vtkm/cont/ArrayHandleUniformPointCoordinatesFP16.h>
+#include <vtkm/cont/ArrayRangeComputeTemplate.h>
 #include <vtkm/filter/FilterDataSetWithField.h>
 #include <vtkm/filter/MapFieldPermutation.h>
 //#include <vtkm/filter/Contour.h>
@@ -15,7 +16,7 @@
 #include <vtkm/worklet/DispatcherMapField.h>
 #include <vtkm/worklet/contour/FieldPropagation.h>
 #include <vtkm/worklet/contour/CommonState.h>
-#include <vtkm/worklet/contour/FlyingEdgesFP16.h>
+//#include <vtkm/worklet/contour/FlyingEdgesFP16.h>
 #include <iostream>
 #include <string>
 namespace vtkm
@@ -33,8 +34,14 @@ namespace vtkm
 				    vtkm::cont::CellSetSingleType<>& result,
 				    Args&&... args) const
 				    {
-				    	result = flying_edges::execute(cells, coords, std::forward<Args>(args)...);
+				    	//result = flying_edges::execute(cells, coords, std::forward<Args>(args)...);
 				    }	
+
+				 template <typename... Args>
+          			void operator()(Args&&... args) const
+          			{
+            				throw vtkm::cont::ErrorBadValue("Marching cubes not supported.");
+          			}
 			};
 
 			struct DeduceCellsTypeFP16
@@ -94,16 +101,7 @@ namespace vtkm
 			  {
 			    this->SharedState.GenerateNormals = false;
 			    vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType, 3>> normals;
-			    /*vtkm::cont::CellSetSingleType<> outputCells = flying_edges::execute(
-					    cells, 
-					    coordinateSystem, 
-					    isovalues, 
-					    input, 
-					    vertices, 
-					    normals, 
-					    this->SharedState);
-			   */
-			    vtkm::cont::CellSetSingleType<> outputCells;	
+			    vtkm::cont::CellSetSingleType<> outputCells;
 			    vtkm::cont::CastAndCall(cells, 
 					   	contour::DeduceCellsTypeFP16{}, 
 					   	coordinateSystem,
@@ -145,16 +143,6 @@ namespace vtkm
                                                 vertices,
                                                 normals,
                                                 this->SharedState);
-			    /*
-			    vtkm::cont::CellSetSingleType<> outputCells = flying_edges::execute(
-					    cells,
-                                            coordinateSystem,
-                                            isovalues,
-                                            input,
-                                            vertices,
-                                            normals,
-                                            this->SharedState);
-			    */
 			    return outputCells;
 			  }
 
