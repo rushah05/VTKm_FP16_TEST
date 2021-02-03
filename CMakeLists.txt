@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.3...3.12 FATAL_ERROR)
 project(VTKmDemo CXX)
 
-SET(VTKm_DIR "/home/ruchi/vtkm1/vtk-m")
+SET(VTKm_DIR "/home/ruchi/fp16_vtkm_new/vtk-m")
 find_package(VTKm REQUIRED)
 
 message("${VTKm_FOUND}")
@@ -15,8 +15,9 @@ endif()
 
 set(CMAKE_CUDA_FLAGS "-gencode arch=compute_70,code=sm_70")
 #set(CMAKE_CXX_FLAGS "$-I/usr/local/cuda-10.1/include")
+SET(CMAKE_CXX_FLAGS_DEBUG "-D_DEBUG")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/local/cuda-10.1/include")
-set(CMAKE_PREFIX_PATH "/home/ruchi/vtkm1/build")
+set(CMAKE_PREFIX_PATH "/home/ruchi/fp16_vtkm_new/build")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -ftemplate-backtrace-limit=50")
 
 add_executable(ContourFP16 ContourFP16.cu)

@@ -16,7 +16,7 @@
 #include <vtkm/worklet/DispatcherMapField.h>
 #include <vtkm/worklet/contour/FieldPropagation.h>
 #include <vtkm/worklet/contour/CommonState.h>
-//#include <vtkm/worklet/contour/FlyingEdgesFP16.h>
+#include <vtkm/worklet/contour/FlyingEdgesFP16.h>
 #include <iostream>
 #include <string>
 namespace vtkm
@@ -34,13 +34,13 @@ namespace vtkm
 				    vtkm::cont::CellSetSingleType<>& result,
 				    Args&&... args) const
 				    {
-				    	//result = flying_edges::execute(cells, coords, std::forward<Args>(args)...);
+				    	result = flying_edges::execute(cells, coords, std::forward<Args>(args)...);
 				    }	
 
 				 template <typename... Args>
           			void operator()(Args&&... args) const
           			{
-            				throw vtkm::cont::ErrorBadValue("Marching cubes not supported.");
+            				//throw vtkm::cont::ErrorBadValue("Marching cubes not supported.");
           			}
 			};
 
@@ -154,7 +154,7 @@ namespace vtkm
 					const vtkm::cont::ArrayHandle<ValueType, StorageType>& input) const
 			{
 				using vtkm::worklet::contour::MapPointField;
-				//vtkm::worklet::DispatcherMapField<MapPointField> applyFieldDispatcher;
+				vtkm::worklet::DispatcherMapField<MapPointField> applyFieldDispatcher;
 				
 				vtkm::cont::ArrayHandle<ValueType> output;
 				/*applyFieldDispatcher.Invoke(this->SharedState.InterpolationEdgeIds,
@@ -177,13 +177,13 @@ namespace vtkm
 			public:
   			struct TypeListTagFP16 : vtkm::ListTagBase<::vtkm::UInt8,
                                              ::vtkm::Int32,
-                           		     ::vtkm::Int64,
-		                             ::vtkm::Float16,
+                           		             ::vtkm::Int64,
+		                                     ::vtkm::Float16,
                                              ::vtkm::Float32,
-					     ::vtkm::Float64,
+					                         ::vtkm::Float64,
                                              ::vtkm::Vec<::vtkm::Float16, 3>,
                                              ::vtkm::Vec<::vtkm::Float32, 3>,
-					     ::vtkm::Vec<::vtkm::Float64, 3>>
+					                         ::vtkm::Vec<::vtkm::Float64, 3>>
   			{
   			};
 
@@ -464,29 +464,40 @@ int main()
    vtkm::cont::DataSetBuilderUniform dataSetBuilder;
    vtkm::cont::DataSetFieldAdd dsf;
 
-   vtkm::Id3 dims(3, 3, 3);
-   vtkm::Id3 org(0,0,0);
-   vtkm::Id3 spc(1,1,1);
+   vtkm::Id3 dims(100, 100, 100);
+   vtkm::Id3 org(10,10,10);
+   vtkm::Id3 spc(5,5,5);
 
-   vtkm::Int32 N = 27;
+   vtkm::Int32 N = 100;
+   float pts = 0.0f;
 
    std::vector<vtkm::Float16> data(N);
    for (vtkm::Int32 i = 0; i < N; i++)
-     data[i] = (float)i;
+   {
+     data[i] = ph::TypesHalf(pts);
+     pts = pts + 1.0f;
+   }
    vtkm::cont::ArrayHandle<vtkm::Float16> fieldData = vtkm::cont::make_ArrayHandle(data);
+
+//    std::vector<T> ivalues(this->IsoValues.size());
+//    for (std::size_t i = 0; i < ivalues.size(); ++i)
+//    {
+//        ivalues[i] = static_cast<T>(this->IsoValues[i]);
+//    }
 
    std::string fieldName = "fieldData";
    inputDataSet = dataSetBuilder.Create(dims, org, spc);      
    dsf.AddPointField(inputDataSet, fieldName, fieldData);
 
    vtkm::filter::ContourFP16 contour;
-   contour.SetGenerateNormals(false);
-   contour.SetMergeDuplicatePoints(false);
+   contour.SetGenerateNormals(true);
+   contour.SetMergeDuplicatePoints(true);
    contour.SetNumberOfIsoValues(1);
    vtkm::Float16 val = 0.5f;
    contour.SetIsoValue(0, val);
    contour.SetActiveField(fieldName);
    vtkm::cont::DataSet ds_from_mc = contour.Execute(inputDataSet,vtkm::filter::PolicyFP16DataSet());
-    return 0;
+
+   return 0;
 
 }
