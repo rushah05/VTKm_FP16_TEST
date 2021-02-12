@@ -1,4 +1,5 @@
 #include <vtkm/Types.h>
+#include <vtkm/io/writer/VTKDataSetWriter.h>
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/DataSetBuilderUniform.h>
 #include <vtkm/cont/Invoker.h>
@@ -9,9 +10,11 @@
 #include <vtkm/cont/CoordinateSystemFP16.h>
 #include <vtkm/cont/ArrayHandleUniformPointCoordinatesFP16.h>
 #include <vtkm/cont/ArrayRangeComputeTemplate.h>
+#include <vtkm/cont/ColorTable.h>
+#include <vtkm/rendering/Actor.h>
+#include <vtkm/rendering/Scene.h>
 #include <vtkm/filter/FilterDataSetWithField.h>
 #include <vtkm/filter/MapFieldPermutation.h>
-//#include <vtkm/filter/Contour.h>
 #include <vtkm/filter/PolicyDefault.h>
 #include <vtkm/worklet/DispatcherMapField.h>
 #include <vtkm/worklet/contour/FieldPropagation.h>
@@ -464,7 +467,7 @@ int main()
    vtkm::cont::DataSetBuilderUniform dataSetBuilder;
    vtkm::cont::DataSetFieldAdd dsf;
 
-   vtkm::Id3 dims(100, 100, 100);
+   /*vtkm::Id3 dims(100, 100, 100);
    vtkm::Id3 org(10,10,10);
    vtkm::Id3 spc(5,5,5);
 
@@ -484,20 +487,88 @@ int main()
 //    {
 //        ivalues[i] = static_cast<T>(this->IsoValues[i]);
 //    }
+*/
+   vtkm::Id3 dims(257 , 257 , 257);
+   vtkm::Id3 org(0, 0, 0);
+   vtkm::Id3 space(1 , 1, 1);
 
-   std::string fieldName = "fieldData";
+   std::vector<vtkm::Float16> data_u;
+   std::vector<vtkm::Float16> data_v;
+   double* array =(double*)malloc((size_t)257*257*257*sizeof(double));
+   FILE *ff1 = fopen("data/u-0.bin", "rb");
+   fread(array, sizeof(double)*257*257*257, 1, ff1);
+   fclose(ff1);
+   for(long long i=0; i<(long long)257*257*257; ++i)
+   {
+	float a = array[i];
+	data_u.push_back(ph::TypesHalf(a));
+   }
+
+   FILE *ff2 = fopen("data/v-0.bin", "rb");
+   fread(array, sizeof(double)*257*257*257, 1, ff2);
+   fclose(ff2);
+   for(long long j=0; j<(long long)257*257*257; ++j)
+   {
+	float a = array[j];
+	data_v.push_back(ph::TypesHalf(a));
+   }
+
+   vtkm::cont::ArrayHandle<vtkm::Float16> pointvar_u = vtkm::cont::make_ArrayHandle(data_u);
+   vtkm::cont::ArrayHandle<vtkm::Float16> pointvar_v = vtkm::cont::make_ArrayHandle(data_v);
+
+   std::string dfname1 = "pointvar_u";
+   std::string dfname2 = "pointvar_v";
+   
+   inputDataSet = dataSetBuilder.Create(dims, org, space);
+   dsf.AddPointField(inputDataSet, dfname1, pointvar_u);
+   dsf.AddPointField(inputDataSet, dfname2, pointvar_v);
+
+   /*std::string fieldName = "fieldData";
    inputDataSet = dataSetBuilder.Create(dims, org, spc);      
    dsf.AddPointField(inputDataSet, fieldName, fieldData);
-
+   */
+   
    vtkm::filter::ContourFP16 contour;
    contour.SetGenerateNormals(true);
    contour.SetMergeDuplicatePoints(true);
    contour.SetNumberOfIsoValues(1);
    vtkm::Float16 val = 0.5f;
    contour.SetIsoValue(0, val);
-   contour.SetActiveField(fieldName);
+   contour.SetActiveField(dfname1);
+   contour.SetFieldsToPass({dfname1,dfname2});
    vtkm::cont::DataSet ds_from_mc = contour.Execute(inputDataSet,vtkm::filter::PolicyFP16DataSet());
+   vtkm::io::writer::VTKDataSetWriter writer("out_mc.vtk");
+   writer.WriteDataSet(inputDataSet);
 
+   //Creating Actor
+   vtkm::cont::ColorTable colorTable("inferno");
+   vtkm::rendering::Actor actor(ds_from_mc.GetCellSet(),
+		       ds_from_mc.GetCoordinateSystemFP16(),
+		       ds_from_mc.GetField(dfname1),
+		       colorTable);
+
+   //Creating Scene and adding Actor
+ /*  vtkm::rendering::Scene scene;
+   actor.SetScalarRange(actor.GetScalarRange());
+   scene.AddActor(actor);
+
+   //Creating and initializing the View using the Canvas, Ray Tracer Mappers, and Scene
+   //vtkm::rendering::MapperRayTracer mapper;
+   vtkm::rendering::MapperWireframer wmapper;
+   vtkm::rendering::CanvasRayTracer canvas(2048, 2048);
+   //vtkm::rendering::View3D view(scene, mapper, canvas);
+   vtkm::rendering::View3D view(scene, wmapper, canvas);
+   view.Initialize();
+
+   //Setting the background and foreground colors; optional.
+   view.SetBackgroundColor(vtkm::rendering::Color(1.0f, 1.0f, 1.0f));
+   view.SetForegroundColor(vtkm::rendering::Color(0.0f, 0.0f, 0.0f));
+
+   //Painting View
+   view.Paint();
+
+   //Saving View
+   view.SaveAs("FlyingEdgeRendering.png");
+*/
    return 0;
-
 }
